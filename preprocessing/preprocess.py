@@ -4,7 +4,13 @@ from pathlib import Path
 import io
 import logging
 from typing import Union, Optional
-import chardet
+
+# Optional import for encoding detection
+try:
+    import chardet
+    CHARDET_AVAILABLE = True
+except ImportError:
+    CHARDET_AVAILABLE = False
 
 class DataProcessor:
     """Enterprise-grade data processing with robust error handling"""
@@ -51,13 +57,16 @@ class DataProcessor:
         # Read file content
         content = uploaded_file.getvalue()
         
-        # Detect encoding
-        detected = chardet.detect(content)
-        encoding = detected.get('encoding', 'utf-8')
+        # Detect encoding if chardet is available
+        if CHARDET_AVAILABLE:
+            detected = chardet.detect(content)
+            encoding = detected.get('encoding', 'utf-8')
+            encodings = [encoding, 'utf-8', 'latin-1', 'cp1252']
+        else:
+            # Fallback encodings if chardet is not available
+            encodings = ['utf-8', 'latin-1', 'cp1252', 'iso-8859-1']
         
-        # Try detected encoding first, then fallbacks
-        encodings = [encoding, 'utf-8', 'latin-1', 'cp1252']
-        
+        # Try encodings in order
         for enc in encodings:
             try:
                 df = pd.read_csv(io.BytesIO(content), encoding=enc)
